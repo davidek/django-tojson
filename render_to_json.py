@@ -35,7 +35,7 @@ def to_json_response(obj, **kwargs):
     except TypeError:
         return obj
 
-    if obj is None:
+    if obj is not None:
         indent = 4 if getattr(settings, 'DEBUG', False) else None
         if jsonify:
             r.write(json.dumps(obj, indent=indent))
