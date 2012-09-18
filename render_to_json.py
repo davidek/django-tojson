@@ -24,12 +24,12 @@ def to_json_response(obj, **kwargs):
     except TypeError:
         return obj
 
-    if obj:
-        indent = 4 if settings.__getattr__('DEBUG', False) else None
+    if obj is None:
+        indent = 4 if getattr(settings, 'DEBUG', False) else None
         if jsonify:
             r.write(json.dumps(obj, indent=indent))
         else:
-            r.write()
+            r.write(obj)
     else:
         r.write("{}")
     return r
@@ -61,10 +61,9 @@ def render_to_json(default_args={}):
 
             if isinstance(ret, tuple):
                 if len(ret) == 2:
-                    newargs = ret[1]
+                    obj, newargs = ret
                     if isinstance(newargs, dict):
                         args.update(newargs)
-                        obj = ret[0]
 
             return to_json_response(obj, **(args))
 
