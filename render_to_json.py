@@ -61,6 +61,7 @@ def render_to_json(default_args={}):
             return HttpResponseSubClass('This will not be touched by the decorator.')
 
     @render_to_json(status=401):
+    def my_view(request):
         return {'whatever_code': 21}
     """
     def wrap(the_func):
