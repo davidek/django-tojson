@@ -1,3 +1,12 @@
+# Django view decorator to easily handle json responses
+#
+# I was annoyed by annoying.decorators.ajax_request, so I wrote my own
+# render_to_response decorator, which I find more flexible and useful.
+# See examples in the docstrings below for usage.
+#
+# Written by: Davide Kirchner
+#
+
 from django.http import HttpResponse
 from django.conf import settings
 try:
@@ -7,8 +16,10 @@ except ImportError:
 
 def to_json_response(obj, **kwargs):
     """
+    Unless obj is itself an HttpResponse or cls is None,
+    kwargs will be passed to the class constructor.
     Special kwargs are:
-    'cls'    Class to be used instead of HttpResponse.
+    'cls'      Class to be used instead of HttpResponse.
                If None, obj will be simply returned
     'jsonify'  Boolean: if false, obj will be just written to reponse
     """
