@@ -26,8 +26,8 @@ def to_json_response(obj, **kwargs):
     if isinstance(obj, HttpResponse):
         return obj
 
-    cls = kwargs.pop('cls', HttpResponse)
-    jsonify = kwargs.pop('jsonify', True)
+    cls = kwargs.get('cls', HttpResponse)
+    jsonify = kwargs.get('jsonify', True)
     try:
         params = {'mimetype': 'application/json'}
         params.update(kwargs)
@@ -42,10 +42,11 @@ def to_json_response(obj, **kwargs):
         else:
             r.write(obj)
     else:
-        r.write("{}")
+        r.write("")
+
     return r
 
-def render_to_json(default_args={}):
+def render_to_json(**default_args):
     """
     Decorator that wraps to_json_response.
     
@@ -62,14 +63,14 @@ def render_to_json(default_args={}):
 
     @render_to_json(status=401):
     def my_view(request):
-        return {'whatever_code': 21}
+        return {'whatever': 21}
+
     """
     def wrap(the_func):
         def _decorated(*args, **kwargs):
             ret = the_func(*args, **kwargs)
-
             obj = ret
-            args = default_args.copy()
+            args=default_args
 
             if isinstance(ret, tuple):
                 if len(ret) == 2:
@@ -77,7 +78,7 @@ def render_to_json(default_args={}):
                     if isinstance(newargs, dict):
                         args.update(newargs)
 
-            return to_json_response(obj, **(args))
+            return to_json_response(obj, **args)
 
         _decorated.__name__ = the_func.__name__
         return _decorated
