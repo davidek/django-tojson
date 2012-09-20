@@ -9,6 +9,7 @@
 
 from django.http import HttpResponse
 from django.conf import settings
+
 try:
     import json
 except ImportError:
@@ -26,8 +27,8 @@ def to_json_response(obj, **kwargs):
     if isinstance(obj, HttpResponse):
         return obj
 
-    cls = kwargs.get('cls', HttpResponse)
-    jsonify = kwargs.get('jsonify', True)
+    cls = kwargs.pop('cls', HttpResponse)
+    jsonify = kwargs.pop('jsonify', True)
     try:
         params = {'mimetype': 'application/json'}
         params.update(kwargs)
