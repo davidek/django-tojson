@@ -7,7 +7,7 @@
 # Written by: Davide Kirchner
 #
 
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.conf import settings
 
 try:
@@ -80,6 +80,26 @@ def render_to_json(**default_args):
                         args.update(newargs)
 
             return to_json_response(obj, **args)
+
+        _decorated.__name__ = the_func.__name__
+        return _decorated
+    return wrap
+
+
+def login_required_json(
+    error={'success': False,
+           'message': 'Logging in is required'}):
+    '''
+    If the user is not logged in, rejects the request with the given error
+    and HTTP 403 Forbidden status code.
+    The error must be a json-serializable object
+    '''
+    def wrap(the_func):
+        def _decorated(request, *args, **kwargs):
+            if not request.user.is_authenticated():
+                return to_json_response(error, cls=HttpResponseForbidden)
+
+            return the_func(request, *args, **kwargs)
 
         _decorated.__name__ = the_func.__name__
         return _decorated
