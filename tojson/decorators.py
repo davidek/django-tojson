@@ -85,22 +85,47 @@ def render_to_json(**default_args):
         return _decorated
     return wrap
 
+from django.contrib.auth import authenticate
+import base64
 
 def login_required_json(
     error={'success': False,
-           'message': 'Logging in is required'}):
+           'message': 'Logging in is required'},
+    accept_default_auth=True, accept_basic_auth=False):
     '''
     If the user is not logged in, rejects the request with the given error
     and HTTP 403 Forbidden status code.
+    If accept_basic is True and user is not already authenticated, HTTP
+    basic auth will be tried and, on failure, the error is returned.
+    For http basic auth one may want to also use @csrf_exempt
     The error must be a json-serializable object
     '''
-    def wrap(the_func):
+    def wrap(view):
         def _decorated(request, *args, **kwargs):
-            if not request.user.is_authenticated():
+            authorized = False
+            if accept_default_auth:
+                if request.user.is_authenticated():
+                    authorized = True
+
+            if ((not authorized) and accept_basic_auth):
+                try:
+                    auth_type, token = request.META['HTTP_AUTHORIZATION'].split()
+                    if auth_type.lower() == "basic":
+                        uname, passwd = base64.b64decode(token).split(':')
+                        user = authenticate(username=uname, password=passwd)
+                        if user is not None:
+                            if user.is_active:
+                                # login(request, user) # non needed, I think
+                                request.user = user
+                                authorized = True
+                except (ValueError, KeyError):
+                    pass
+
+            if authorized:
+                return view(request, *args, **kwargs)
+            else:
                 return to_json_response(error, cls=HttpResponseForbidden)
 
-            return the_func(request, *args, **kwargs)
-
-        _decorated.__name__ = the_func.__name__
+        _decorated.__name__ = view.__name__
         return _decorated
     return wrap
