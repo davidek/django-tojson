@@ -71,7 +71,7 @@ def render_to_json(**default_args):
         def _decorated(*args, **kwargs):
             ret = the_func(*args, **kwargs)
             obj = ret
-            args=default_args
+            args = default_args.copy()
 
             if isinstance(ret, tuple):
                 if len(ret) == 2:
