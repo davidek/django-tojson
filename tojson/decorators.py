@@ -108,8 +108,11 @@ def login_required_json(
                     authorized = True
 
             if ((not authorized) and accept_basic_auth):
+                auth_header = request.META.get('HTTP_AUTHORIZATION', None)
+                if auth_header is None:
+                    auth_header = request.META.get('HTTP_X_AUTHORIZATION', None)
                 try:
-                    auth_type, token = request.META['HTTP_AUTHORIZATION'].split()
+                    auth_type, token = auth_header.split()
                     if auth_type.lower() == "basic":
                         uname, passwd = base64.b64decode(token).split(':')
                         user = authenticate(username=uname, password=passwd)
@@ -118,7 +121,7 @@ def login_required_json(
                                 # login(request, user) # non needed, I think
                                 request.user = user
                                 authorized = True
-                except (ValueError, KeyError):
+                except (ValueError, AttributeError):
                     pass
 
             if authorized:
