@@ -10,10 +10,26 @@
 from django.http import HttpResponse, HttpResponseForbidden
 from django.conf import settings
 
+from functools import wraps
 try:
     import json
 except ImportError:
     import simplejson as json
+
+
+def charset_already_set(response):
+    """
+    This function check if charset is already setted in Content-Type
+    """
+    charset = response.get('Content-Type', None)
+    if charset:
+        if 'charset' in unicode(charset).lower():
+            return True
+        else : 
+            return False
+    else:
+        return False
+
 
 def to_json_response(obj, **kwargs):
     """
@@ -23,12 +39,16 @@ def to_json_response(obj, **kwargs):
     'cls'      Class to be used instead of HttpResponse.
                If None, obj will be simply returned
     'jsonify'  Boolean: if false, obj will be just written to reponse
+    'ensure_ascii' Boolean: if true, json will be encoded into ascii.
+                   default False
     """
     if isinstance(obj, HttpResponse):
         return obj
 
     cls = kwargs.pop('cls', HttpResponse)
     jsonify = kwargs.pop('jsonify', True)
+    ascii = kwargs.pop('ensure_ascii', False)
+
     try:
         params = {'mimetype': 'application/json'}
         params.update(kwargs)
@@ -39,13 +59,16 @@ def to_json_response(obj, **kwargs):
     if obj is not None:
         indent = 4 if getattr(settings, 'DEBUG', False) else None
         if jsonify:
-            r.write(json.dumps(obj, indent=indent))
+            json.dump(obj, r, indent=indent, ensure_ascii=ascii)
+            if (not ascii) and (not charset_already_set(r)):
+                r['Content-Type'] += '; charset=utf-8'
         else:
             r.write(obj)
     else:
         r.write("")
 
     return r
+
 
 def render_to_json(**default_args):
     """
@@ -68,20 +91,20 @@ def render_to_json(**default_args):
 
     """
     def wrap(the_func):
+        @wraps(the_func)
         def _decorated(*args, **kwargs):
             ret = the_func(*args, **kwargs)
             obj = ret
-            args = default_args.copy()
+            dec_args = default_args.copy()
 
             if isinstance(ret, tuple):
                 if len(ret) == 2:
                     obj, newargs = ret
                     if isinstance(newargs, dict):
-                        args.update(newargs)
+                        dec_args.update(newargs)
 
-            return to_json_response(obj, **args)
+            return to_json_response(obj, **dec_args)
 
-        _decorated.__name__ = the_func.__name__
         return _decorated
     return wrap
 
@@ -101,6 +124,7 @@ def login_required_json(
     The error must be a json-serializable object
     '''
     def wrap(view):
+        @wraps(view)
         def _decorated(request, *args, **kwargs):
             authorized = False
             if accept_default_auth:
@@ -118,7 +142,7 @@ def login_required_json(
                         user = authenticate(username=uname, password=passwd)
                         if user is not None:
                             if user.is_active:
-                                # login(request, user) # non needed, I think
+                                # login(request, user) # no need no save session
                                 request.user = user
                                 authorized = True
                 except (ValueError, AttributeError):
@@ -129,6 +153,5 @@ def login_required_json(
             else:
                 return to_json_response(error, cls=HttpResponseForbidden)
 
-        _decorated.__name__ = view.__name__
         return _decorated
     return wrap
