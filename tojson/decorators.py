@@ -7,8 +7,10 @@
 # Written by: Davide Kirchner
 #
 
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import \
+    HttpResponse, HttpResponseForbidden, HttpResponseNotFound, Http404
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 from functools import wraps
 try:
@@ -17,15 +19,39 @@ except ImportError:
     import simplejson as json
 
 
+_DEFAULT_ERRORS = {
+    #'login_required':
+    #    {'success': False,
+    #     'message': 'Logging in is required'},
+    'not_found':
+        {'success': False,
+         'message': 'Page not found'},
+}
+ERRORS = _DEFAULT_ERRORS.copy()
+ERRORS.update(getattr(settings, 'TOJSON_DEFAULT_ERRORS', {}))
+if len(ERRORS) > len(_DEFAULT_ERRORS):
+    def _tostr(s):
+        return '{' + ', '.join(repr(x) for x in s) + '}'
+    allowed = set(_DEFAULT_ERRORS.iterkeys())
+    wrong = set(ERRORS.iterkeys()) - allowed
+    raise ImproperlyConfigured(
+        (u'TOJSON_DEFAULT_ERRORS can only contain the keys {allowed}'
+         u', but more were found: {wrong}'
+        ).format(
+            allowed=_tostr(allowed), wrong=_tostr(wrong)
+        )
+    )
+
+
 def charset_already_set(response):
     """
-    This function check if charset is already setted in Content-Type
+    This function check if charset is already set in Content-Type
     """
     charset = response.get('Content-Type', None)
     if charset:
         if 'charset' in unicode(charset).lower():
             return True
-        else : 
+        else:
             return False
     else:
         return False
@@ -70,10 +96,10 @@ def to_json_response(obj, **kwargs):
     return r
 
 
-def render_to_json(**default_args):
+def render_to_json(not_found_error=ERRORS['not_found'], **default_args):
     """
     Decorator that wraps to_json_response.
-    
+
     @render_to_json()
     def my_view(request):
         if ... :
@@ -93,7 +119,12 @@ def render_to_json(**default_args):
     def wrap(the_func):
         @wraps(the_func)
         def _decorated(*args, **kwargs):
-            ret = the_func(*args, **kwargs)
+            try:
+                ret = the_func(*args, **kwargs)
+            except Http404:
+                ret = (not_found_error,
+                       dict(cls=HttpResponseNotFound))
+
             obj = ret
             dec_args = default_args.copy()
 
@@ -110,6 +141,11 @@ def render_to_json(**default_args):
 
 from django.contrib.auth import authenticate
 import base64
+
+# TODO: replace `error` with somthing configurable via TOJSON_DEFAULT_ERRORS:
+# TODO: more possible errors:
+#   missing_login_info, wrong_login_format, wrong_login_credentials
+
 
 def login_required_json(
     error={'success': False,
