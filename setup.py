@@ -1,5 +1,4 @@
 from setuptools import setup
-import tojson
 
 setup(
     name = "django-tojson",
