@@ -3,7 +3,7 @@ import tojson
 
 setup(
     name = "django-tojson",
-    version = tojson.__version__,
+    version = "0.3.0",
     description = open("README", 'r').read(),
     url = "https://github.com/davidek/django-tojson",
     author="Davide Kirchner, Roberto Bampi",
