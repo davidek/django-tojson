@@ -76,7 +76,7 @@ def to_json_response(obj, **kwargs):
     ascii = kwargs.pop('ensure_ascii', False)
 
     try:
-        params = {'mimetype': 'application/json'}
+        params = {'content_type': 'application/json'}
         params.update(kwargs)
         r = cls(**params)
     except TypeError:

@@ -6,6 +6,12 @@ Django view decorator to easily handle json responses
 I was annoyed by annoying.decorators.ajax_request, so I wrote my own
 render_to_response decorator, which I find more flexible and useful.
 
+installation
+------------
+Simply install with:
+
+`pip install git+https://github.com/davidek/django-tojson.git@master`
+
 render_to_json
 --------------
 
